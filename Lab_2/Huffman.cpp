@@ -28,10 +28,9 @@ public:
 template<typename T>
 class NodeOfList
 {
-private:
-	NodeOfList* next, * prev;
 public:
 	T data;
+	NodeOfList* next, * prev;
 	NodeOfList() : next(NULL), prev(NULL) {};
 	NodeOfList(T data)
 	{
@@ -82,6 +81,8 @@ class List
 {
 private:
 public:
+
+	
 	NodeOfList<T>* head, * tail;
 	NodeOfList<T>* get_pointer(size_t index)
 	{
@@ -103,7 +104,7 @@ public:
 			return temp;
 		}
 	}
-	List() : head(NULL), tail(NULL) {}
+	List() : head(nullptr), tail(nullptr) {}
 	List(const List<T>& list) {
 		clear();
 		NodeOfList<T>* temp = list.head;
@@ -190,14 +191,13 @@ public:
 	}
 	void pop_front()
 	{
-		if (head != tail)
+		if (head)
 		{
 			NodeOfList<T>* temp = head;
 			head = head->get_next();
-			head->set_prev(NULL);
 			delete temp;
 		}
-		else if (!isEmpty())
+		else if (head == tail && get_size() == 1)
 		{
 			NodeOfList<T>* temp = head;
 			head = tail = NULL;
@@ -961,25 +961,72 @@ private:
 
 };
 
-////sort list
 
-void sortList(List<Node_tree*>& list)
+
+void FrontBackSplit(NodeOfList<Node_tree*>* source,
+	NodeOfList<Node_tree*>** frontRef, NodeOfList<Node_tree*>** backRef)
 {
-	NodeOfList<Node_tree*>* left = list.head;         
-	NodeOfList<Node_tree*>* right = list.head->get_next();      
-	NodeOfList<Node_tree*>* temp = new NodeOfList<Node_tree*>;      
-	while (left->get_next()) {         
-		while (right) {      
-			if ((left->data->frequency) >= (right->data->frequency)) {   
-				temp->data = left->data;    
-				left->data = right->data;   
-				right->data = temp->data;      
-			}
-			right = right->get_next();     
+	NodeOfList<Node_tree*>* fast;
+	NodeOfList<Node_tree*>* slow;
+	slow = source;
+	fast = source->next;
+
+	while (fast != nullptr) {
+		fast = fast->next;
+		if (fast != nullptr) {
+			slow = slow->next;
+			fast = fast->next;
 		}
-		left = left->get_next();
-		right = left->get_next();   
 	}
+
+	*frontRef = source;
+	*backRef = slow->next;
+	slow->next = nullptr;
+}
+
+NodeOfList<Node_tree*>* SortedMerge(NodeOfList<Node_tree*>* a, NodeOfList<Node_tree*>* b)
+{
+	NodeOfList<Node_tree*>* result = nullptr;
+
+	if (a == nullptr)
+		return (b);
+	else if (b == nullptr)
+		return (a);
+
+	if (a->data->frequency <= b->data->frequency) {
+		result = a;
+		result->set_data(a->data);
+		result->next = SortedMerge(a->next, b);
+	}
+	else {
+		result = b;
+		result->set_data(b->data);
+		result->next = SortedMerge(a, b->next);
+	}
+	return (result);
+}
+
+void helpMergSort(NodeOfList<Node_tree*>** headRef)
+{
+	NodeOfList<Node_tree*>* head = *headRef;
+	NodeOfList<Node_tree*>* a;
+	NodeOfList<Node_tree*>* b;
+
+	if ((head == nullptr) || (head->next == nullptr)) {
+		return;
+	}
+
+	FrontBackSplit(head, &a, &b);
+
+	helpMergSort(&a);
+	helpMergSort(&b);
+
+	*headRef = SortedMerge(a, b);
+}
+
+void MergeSort(List<Node_tree*>& headRef)
+{
+	helpMergSort(&headRef.head);
 }
 
 ////make a Huffman tree
@@ -989,7 +1036,7 @@ void Huffman_tree(List<Node_tree*>& List)
 
 	{
 
-		sortList(List);
+		MergeSort(List);
 
 		Node_tree* Left = List.head->data;
 
@@ -1001,7 +1048,7 @@ void Huffman_tree(List<Node_tree*>& List)
 
 		Node_tree* parent = new Node_tree(Left, Right);
 
-		List.push_back(parent);
+		List.push_front(parent);
 
 	}
 }
@@ -1009,19 +1056,19 @@ void Huffman_tree(List<Node_tree*>& List)
 ////making table of coding
 void makeTable(Node_tree* root, map<char, bool*>& table, List<bool>& listCode)
 {
-	if (root->left != NULL)
+	if (root->left != nullptr)
 	{
 		listCode.push_back(false);
 		makeTable(root->left, table, listCode);
 	}
 
-	if (root->right != NULL)
+	if (root->right != nullptr)
 	{
 		listCode.push_back(true);
 		makeTable(root->right, table, listCode);
 	}
 
-	if (root->left == NULL && root->right == NULL)
+	if (root->left == nullptr && root->right == nullptr)
 	{
 		table.FindNode(root->code)->value = new bool[listCode.get_size()];
 		for (size_t i = 0; i < listCode.get_size(); i++)
